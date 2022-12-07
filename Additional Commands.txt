@@ -1,0 +1,147 @@
+-----------------------------------------------------------------
+Static website
+-----------------------------------------------------------------
+1)sudo yum update
+2)yes
+3)sudo yum install -y httpd.x86_64
+4)sudo systemctl start httpd.service
+5)sudo systemctl enable httpd.service
+6) edit inbound rules in security group
+7)click on public dns ,creating a web server
+
+After creating web server
+1) sudo nano/var/www/html/index.html
+2)write html code and enter
+3)click on public dns, creating a web page/application
+
+
+
+-----------------------------------------------------------------
+S3 Bucket Policies
+-----------------------------------------------------------------
+{
+    "Version": "2012-10-17",
+    "Id": "Policy1640958696038",
+    "Statement": [
+        {
+            "Sid": "Stmt1640958688822",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::demo-s3-website-cloudkatha/*"
+        }
+    ]
+}
+
+
+
+
+-----------------------------------------------------------------
+Lambda
+-----------------------------------------------------------------
+-> find the maximum
+-----------------------------------------------------------------
+import json
+import csv
+import boto3 #used to interact with s3 with python
+import urllib
+
+s3=boto3.client('s3')
+
+def lambda_handler(event, context):
+   
+    print("The Event is triggered")
+   
+    buc_name=event['Records'][0]['s3']['bucket']['name']
+    key=event['Records'][0]['s3']['object']['key']
+   
+    key=urllib.parse.unquote_plus(key, encoding='utf-8')
+ 
+    #Get the Object
+    response=s3.get_object(Bucket=buc_name,Key=key)
+    text = response['Body'].read().decode().splitlines() 
+    
+    #Reading into csv file
+    records = csv.reader(text)
+    print(records)
+    headers = next(records) 
+    
+    print(headers)
+    
+    lst=[]
+    for eachRecord in records:
+        print(eachRecord)
+        lst.append(eachRecord)
+    print(lst)
+    
+    lst2=[]
+    for i in range(len(lst)):
+        templst=[lst[i][0],headers[lst[i].index(str(max(lst[i][1:])))]]
+        lst2.append(templst)
+        
+    print(lst2)
+    
+    new_headers =['Quaters', "Best Selling Products"]
+    
+    # Only then you can write the data into the '/tmp' folder
+    with open('/tmp/result.csv', 'w', encoding='UTF8') as f:
+        writer = csv.writer(f)
+    
+        # write the header
+        writer.writerow(new_headers)
+    
+        # write the data
+        for i in range(len(lst2)):
+            writer.writerow(lst2[i])
+    
+    key = '/tmp/result.csv'
+
+    # upload the data into s3
+    s3.upload_file('/tmp/result.csv', buc_name, key)
+    print("Upload complete")
+    
+    return "Success!!"
+
+
+
+
+-----------------------------------------------------------------
+SNS with Lambda
+-----------------------------------------------------------------
+import json
+import boto3
+
+
+s3 = boto3.resource('s3')
+sns = boto3.resource('sns')
+
+def lambda_handler(event,context):
+	bkt = s3.bucket('bucketname')
+	count = 0
+	for obj in bkt.objects.all():
+		count += 1
+		print(obj.key)
+	print(count)
+
+-----------------------------------------------------------------
+EFS Mounting
+-----------------------------------------------------------------
+sudo su
+cd /
+mkdir efs
+<mount code>
+cd efs/
+wget <s3URL>
+ls
+cat <filename>
+
+-----------------------------------------------------------------
+RDS with MySQL from EC2
+-----------------------------------------------------------------
+sudo yum update
+sudo yum install mysql
+mysql -h endpoint -P 3306 -u usrname -p
+enter pwd
+>create database demo;
+>use demo;
+>create table test(.....);
